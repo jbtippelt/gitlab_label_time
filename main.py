@@ -7,6 +7,7 @@ import datetime
 from yaspin import yaspin
 from yaspin.spinners import Spinners
 from prettytable import PrettyTable
+from getpass import getpass
 
 class Config(object):
     def __init__(self):
@@ -206,10 +207,19 @@ class GitlabAPI:
         return '%s/%s/%s' % (self.issues_url(), issue_id, 'resource_label_events')
 
     def login(self):
-        with open('auth', 'rb') as auth_data:
-            r = requests.post(self.auth_url, json=json.loads(auth_data.read()))
-            auth_res = json.loads(r.text)
-            self.auth_header = { "Authorization": auth_res["token_type"] + " " + auth_res["access_token"] }
+        username = input('Gitlab username: ')
+        password = getpass()
+        auth = json.dumps({
+            "grant_type"    : "password",
+            "username"      : username,
+            "password"      : password
+        })
+        r = requests.post(self.auth_url, json=json.loads(auth))
+        auth_res = json.loads(r.text)
+        if 'error' in auth_res:
+            print(auth_res)
+            sys.exit(1)
+        self.auth_header = { "Authorization": auth_res["token_type"] + " " + auth_res["access_token"] }
 
     def getIssueLabelEvents(self, issue_id):
         url = self.issue_label_url(issue_id)
